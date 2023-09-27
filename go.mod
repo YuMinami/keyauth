@@ -1,4 +1,4 @@
-module github.com/hertz-contrib/keyauth
+module github.com/YuMinami/keyauth
 
 go 1.16
 
