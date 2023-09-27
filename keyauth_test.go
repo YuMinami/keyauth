@@ -136,13 +136,19 @@ func TestKeyAuthWithOptions(t *testing.T) {
 
 func TestDefaultOptions(t *testing.T) {
 	opt := NewOptions()
-	assert.DeepEqual(t, opt.keyLookup, "header:"+consts.HeaderAuthorization)
-	assert.DeepEqual(t, opt.authScheme, "Bearer")
+	headerKey := "header:" + consts.HeaderAuthorization
+	defaultScheme, headerKeyExist := opt.keyLookAuthSchemeMap[headerKey]
+	assert.True(t, headerKeyExist)
+	assert.DeepEqual(t, defaultScheme, "Bearer")
 	assert.DeepEqual(t, opt.contextKey, "token")
 
 	opt1 := NewOptions(WithContextKey("token1"),
 		WithKeyLookUp("cookie:"+consts.HeaderAuthorization, "bear1"))
-	assert.DeepEqual(t, opt1.keyLookup, "cookie:"+consts.HeaderAuthorization)
-	assert.DeepEqual(t, opt1.authScheme, "bear1")
+
+	cookieKey := "cookie:" + consts.HeaderAuthorization
+	customScheme, cookieKeyExist := opt1.keyLookAuthSchemeMap[cookieKey]
+
+	assert.True(t, cookieKeyExist)
+	assert.DeepEqual(t, customScheme, "bear1")
 	assert.DeepEqual(t, opt1.contextKey, "token1")
 }
