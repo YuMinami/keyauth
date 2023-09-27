@@ -40,7 +40,11 @@ func main() {
 	h := server.Default()
 	h.Use(keyauth.New(
 		keyauth.WithContextKey("token"),
+		// look up in query only
 		keyauth.WithKeyLookUp("query:token", ""),
+
+		// If the method is called again, it will search token from header also.
+		keyauth.WithKeyLookUp("header:token", ""),
 
 		// The middleware is skipped when true is returned.
 		keyauth.WithFilter(func(c context.Context, ctx *app.RequestContext) bool {
