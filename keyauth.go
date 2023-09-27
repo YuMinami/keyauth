@@ -41,8 +41,7 @@ type QueryFunc func(*app.RequestContext) (string, error)
 
 func New(opts ...Option) app.HandlerFunc {
 	cfg := NewOptions(opts...)
-	size := len(cfg.keyLookAuthSchemeMap)
-	queryFuncSlice := make([]QueryFunc, size)
+	queryFuncSlice := make([]QueryFunc, 0)
 	for k, v := range cfg.keyLookAuthSchemeMap {
 		parts := strings.Split(k, ":")
 		if len(parts) != 2 {
