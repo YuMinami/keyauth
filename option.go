@@ -69,6 +69,8 @@ type Options struct {
 	// - "cookie:<name>"
 	keyLookup string
 
+	keyLookAuthSchemeMap map[string]string
+
 	// authScheme to be used in the Authorization header.
 	// Optional. Default value "Bearer".
 	authScheme string
@@ -89,6 +91,8 @@ func (o *Options) Apply(opts []Option) {
 }
 
 func NewOptions(opts ...Option) *Options {
+	keySchemeMap := make(map[string]string, 1)
+	keySchemeMap["header:"+consts.HeaderAuthorization] = "Bearer"
 	options := &Options{
 		successHandler: func(c context.Context, ctx *app.RequestContext) {
 			ctx.Next(c)
@@ -103,9 +107,8 @@ func NewOptions(opts ...Option) *Options {
 		validator: func(ctx context.Context, requestContext *app.RequestContext, s string) (bool, error) {
 			return true, nil
 		},
-		authScheme: "Bearer",
-		contextKey: "token",
-		keyLookup:  "header:" + consts.HeaderAuthorization,
+		keyLookAuthSchemeMap: keySchemeMap,
+		contextKey:           "token",
 	}
 	options.Apply(opts)
 	return options
@@ -137,8 +140,10 @@ func WithErrorHandler(f KeyAuthErrorHandler) Option {
 
 func WithKeyLookUp(lookup, authScheme string) Option {
 	return Option{func(o *Options) {
-		o.keyLookup = lookup
-		o.authScheme = authScheme
+		if o.keyLookAuthSchemeMap == nil {
+			o.keyLookAuthSchemeMap = make(map[string]string, 1)
+		}
+		o.keyLookAuthSchemeMap[lookup] = authScheme
 	}}
 }
 

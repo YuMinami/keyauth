@@ -37,23 +37,20 @@ import (
 // ErrMissingOrMalformedAPIKey When there is no request of the key thrown ErrMissingOrMalformedAPIKey
 var ErrMissingOrMalformedAPIKey = errors.New("missing or malformed API Key")
 
+type QueryFunc func(*app.RequestContext) (string, error)
+
 func New(opts ...Option) app.HandlerFunc {
 	cfg := NewOptions(opts...)
-	parts := strings.Split(cfg.keyLookup, ":")
-	if len(parts) != 2 {
-		panic(errors.New("the length of parts should be equal to 2"))
+	size := len(cfg.keyLookAuthSchemeMap)
+	queryFuncSlice := make([]QueryFunc, size)
+	for k, v := range cfg.keyLookAuthSchemeMap {
+		parts := strings.Split(k, ":")
+		if len(parts) != 2 {
+			panic(errors.New("the length of parts should be equal to 2"))
+		}
+		queryFuncSlice = append(queryFuncSlice, getQueryFunc(parts[0], parts[1], v))
 	}
-	extractor := KeyFromHeader(parts[1], cfg.authScheme)
-	switch parts[0] {
-	case "query":
-		extractor = KeyFromQuery(parts[1])
-	case "form":
-		extractor = KeyFromForm(parts[1])
-	case "param":
-		extractor = KeyFromParam(parts[1])
-	case "cookie":
-		extractor = KeyFromCookie(parts[1])
-	}
+
 	// Return middleware handler
 	return func(c context.Context, ctx *app.RequestContext) {
 		// Filter request to skip middleware
@@ -61,20 +58,49 @@ func New(opts ...Option) app.HandlerFunc {
 			ctx.Next(c)
 			return
 		}
-		// Extract and verify key
-		key, err := extractor(ctx)
-		if err != nil {
-			cfg.errorHandler(c, ctx, err)
+		var finalKey string
+		var finalErr error
+		for index, extractor := range queryFuncSlice {
+			tempKey, tempErr := extractor(ctx)
+			if tempKey != "" {
+				finalKey = tempKey
+				finalErr = tempErr
+				break
+			}
+			if index == len(queryFuncSlice)-1 {
+				finalKey = tempKey
+				finalErr = tempErr
+			}
+		}
+
+		if finalErr != nil {
+			cfg.errorHandler(c, ctx, finalErr)
 			return
 		}
-		valid, err := cfg.validator(c, ctx, key)
+		valid, err := cfg.validator(c, ctx, finalKey)
 		if err == nil && valid {
-			ctx.Set(cfg.contextKey, key)
+			ctx.Set(cfg.contextKey, finalKey)
 			cfg.successHandler(c, ctx)
 			return
 		}
 		cfg.errorHandler(c, ctx, err)
 	}
+}
+
+func getQueryFunc(in string, key string, authScheme string) func(*app.RequestContext) (string, error) {
+	switch in {
+	case "header":
+		return KeyFromHeader(key, authScheme)
+	case "query":
+		return KeyFromQuery(key)
+	case "form":
+		return KeyFromForm(key)
+	case "param":
+		return KeyFromParam(key)
+	case "cookie":
+		return KeyFromCookie(key)
+	}
+	panic(errors.New("invalid look up key"))
 }
 
 // KeyFromHeader returns a function that extracts api key from the request header.
