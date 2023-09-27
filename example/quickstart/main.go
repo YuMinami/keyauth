@@ -28,11 +28,11 @@ package main
 import (
 	"context"
 
+	"github.com/YuMinami/keyauth"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/common/utils"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
-	"github.com/hertz-contrib/keyauth"
 )
 
 func main() {
